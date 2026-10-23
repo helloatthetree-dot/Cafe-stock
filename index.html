@@ -1,0 +1,895 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e6b3f">
+<title>Cafe Komorebi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&display=swap">
+<style>
+/* Layout: phone first, one column. A leaf-light header, big search, category chips that scroll sideways,
+   then item cards with a large stepper (minus, count, plus). Fixed bottom bar holds the two views and Add. */
+:root {
+  --bg: #eef2ea;
+  --surface: #ffffff;
+  --ink: #1c2a20;
+  --muted: #55655a;
+  --line: #d3dccf;
+  --accent: #2e6b3f;
+  --accent-ink: #ffffff;
+  --glow-a: rgba(242, 193, 78, .55);
+  --glow-b: rgba(120, 190, 120, .45);
+  --head-bg: #dfead6;
+  --ok: #24663a;  --ok-bg: #dcefdf;
+  --warn: #8a5200; --warn-bg: #fbe8bf;
+  --crit: #a3231b; --crit-bg: #f9dad6;
+  --bar-bg: rgba(255, 255, 255, .94);
+  --shadow: 0 -10px 34px rgba(20, 35, 25, .22);
+  --f-display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --f-body: "Nunito Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101812; --surface: #18221b; --ink: #e7efe8; --muted: #9db0a2; --line: #2a382d;
+    --accent: #7fcf93; --accent-ink: #0a2012;
+    --glow-a: rgba(220, 170, 60, .28); --glow-b: rgba(90, 160, 100, .30); --head-bg: #16251a;
+    --ok: #86d49a; --ok-bg: #1a3322; --warn: #f0b95e; --warn-bg: #3a2c12; --crit: #f59d95; --crit-bg: #3b1b19;
+    --bar-bg: rgba(24, 34, 27, .95); --shadow: 0 -10px 34px rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101812; --surface: #18221b; --ink: #e7efe8; --muted: #9db0a2; --line: #2a382d;
+  --accent: #7fcf93; --accent-ink: #0a2012;
+  --glow-a: rgba(220, 170, 60, .28); --glow-b: rgba(90, 160, 100, .30); --head-bg: #16251a;
+  --ok: #86d49a; --ok-bg: #1a3322; --warn: #f0b95e; --warn-bg: #3a2c12; --crit: #f59d95; --crit-bg: #3b1b19;
+  --bar-bg: rgba(24, 34, 27, .95); --shadow: 0 -10px 34px rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 17px/1.45 var(--f-body);
+  padding-block: 14px 130px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.wrap { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+
+.hero {
+  border-radius: 20px; padding: 20px 18px 18px; background-color: var(--head-bg);
+  background-image:
+    radial-gradient(circle at 12% 18%, var(--glow-a) 0, transparent 38%),
+    radial-gradient(circle at 88% 8%, var(--glow-b) 0, transparent 42%),
+    radial-gradient(circle at 70% 120%, var(--glow-a) 0, transparent 40%);
+}
+.hero .kicker { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 2px 0 10px; font: 800 clamp(2rem, 9vw, 2.6rem)/1 var(--f-display); letter-spacing: -.01em; text-wrap: balance; }
+.sum { display: flex; flex-wrap: wrap; gap: 8px; }
+.sum span { background: var(--surface); border-radius: 99px; padding: 6px 12px; font-weight: 700; font-size: 15px; }
+.sum .warn { background: var(--warn-bg); color: var(--warn); }
+.sum .crit { background: var(--crit-bg); color: var(--crit); }
+.sum .ok { background: var(--ok-bg); color: var(--ok); }
+
+.sample-note { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 10px 14px; font-size: 15px; font-weight: 600; }
+
+.field {
+  width: 100%; min-width: 0; min-height: 54px; border: 2px solid var(--line); background: var(--surface);
+  border-radius: 14px; padding: 12px 14px; font-size: 17px; color: var(--ink);
+}
+.field:focus { border-color: var(--accent); outline: none; }
+
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scrollbar-width: none; margin: 0 -2px; }
+.chips::-webkit-scrollbar { display: none; }
+.chips[hidden] { display: none; }
+.chip {
+  flex: 0 0 auto; min-height: 46px; padding: 8px 16px; border-radius: 99px; border: 2px solid var(--line);
+  background: var(--surface); font-weight: 700; font-size: 16px;
+}
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+.btn {
+  min-height: 54px; padding: 12px 20px; border-radius: 14px; border: 2px solid var(--line); background: var(--surface);
+  font-weight: 800; font-size: 17px;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.danger { color: var(--crit); border-color: var(--crit); }
+.btn.danger.armed { background: var(--crit); color: #fff; }
+.btn.full { width: 100%; }
+
+.group { display: flex; flex-direction: column; gap: 10px; }
+.group h2 { margin: 6px 2px 0; font: 800 1.2rem/1.2 var(--f-display); display: flex; gap: 8px; align-items: baseline; }
+.group h2 small { font: 700 14px var(--f-body); color: var(--muted); }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.top { display: flex; gap: 10px; justify-content: space-between; align-items: flex-start; }
+.nm { min-width: 0; }
+.name { font-weight: 800; font-size: 19px; line-height: 1.25; overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: 15px; overflow-wrap: anywhere; }
+.pill { flex: 0 0 auto; font-weight: 800; font-size: 14px; padding: 5px 12px; border-radius: 99px; white-space: nowrap; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); }
+.pill.low { background: var(--warn-bg); color: var(--warn); }
+.pill.out { background: var(--crit-bg); color: var(--crit); }
+
+.step { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; gap: 10px; align-items: stretch; }
+.step .sb {
+  height: 64px; border-radius: 16px; border: 2px solid var(--line); background: var(--bg);
+  font-size: 34px; font-weight: 700; line-height: 1;
+}
+.step .sb.plus { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.step .sb:active { transform: scale(.96); }
+.step .sb:disabled { opacity: .35; }
+.count {
+  border: 2px dashed var(--line); background: none; border-radius: 16px; min-height: 64px; padding: 4px 8px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.05;
+}
+.count b { font: 800 30px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.count i { font-style: normal; font-size: 14px; color: var(--muted); font-weight: 700; }
+.count.low b { color: var(--warn); }
+.count.out b { color: var(--crit); }
+.editlink { align-self: flex-start; border: 0; background: none; padding: 4px; margin-top: -4px; min-height: 44px; color: var(--accent); font-weight: 800; font-size: 16px; text-decoration: underline; text-underline-offset: 3px; }
+
+.empty { border: 2px dashed var(--line); border-radius: 18px; padding: 28px 18px; text-align: center; color: var(--muted); display: flex; flex-direction: column; gap: 14px; align-items: center; font-size: 17px; }
+
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--bar-bg); border-top: 1px solid var(--line);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  padding-top: 10px; padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.bar-in { max-width: 600px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tab {
+  min-height: 58px; border-radius: 14px; border: 2px solid transparent; background: none; font-weight: 800; font-size: 14px; padding: 4px 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--muted);
+}
+.tab .tn { font: 800 20px/1 var(--f-display); color: var(--ink); font-variant-numeric: tabular-nums; }
+.tab[aria-pressed="true"] { background: var(--bg); border-color: var(--line); color: var(--ink); }
+.tab.add { background: var(--accent); color: var(--accent-ink); font-size: 16px; flex-direction: row; gap: 4px; white-space: nowrap; }
+.tab.add span { font-size: 28px; line-height: 1; font-weight: 700; }
+
+.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(10, 18, 12, .55); display: flex; align-items: flex-end; justify-content: center; }
+.sheet {
+  width: 100%; max-width: 600px; max-height: 100%; overflow-y: auto; background: var(--surface); box-shadow: var(--shadow);
+  border-radius: 22px 22px 0 0; padding-top: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+}
+.sheet h3 { margin: 0 0 14px; font: 800 1.5rem/1.15 var(--f-display); text-wrap: balance; }
+form { display: flex; flex-direction: column; gap: 14px; }
+form label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 16px; min-width: 0; }
+form .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+form .help { font-weight: 400; font-size: 14px; color: var(--muted); }
+.btns { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+textarea.field { min-height: 180px; font: 15px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 30; bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); padding: 12px 18px; border-radius: 12px; max-width: calc(100% - 32px); font-weight: 700; font-size: 16px; text-align: center;
+}
+
+.upd { color: var(--muted); font-size: 14px; }
+.hist-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hist-tools .btn { min-height: 50px; font-size: 15px; padding: 8px 10px; }
+.hist-note { margin: 0; color: var(--muted); font-size: 15px; }
+.week { display: flex; flex-direction: column; gap: 8px; }
+.week h2 { margin: 6px 2px 0; font: 800 1.2rem/1.2 var(--f-display); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.week h2 small { font: 700 14px var(--f-body); color: var(--muted); }
+.log { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+.ent { padding: 12px 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 2px; }
+.ent:first-child { border-top: 0; }
+.ent .et { font-size: 14px; font-weight: 700; color: var(--muted); }
+.ent .ed { overflow-wrap: anywhere; }
+.chg { font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.chg.up { color: var(--ok); }
+.chg.down { color: var(--warn); }
+.csvnote { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+
+.who { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 12px; font-size: 15px; }
+.who:empty { display: none; }
+.who b { font-weight: 800; }
+.whobtn { border: 2px solid var(--line); background: var(--surface); border-radius: 99px; min-height: 40px; padding: 6px 14px; font-weight: 800; font-size: 14px; }
+.whobtn.hot { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.lock { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; align-items: center; justify-content: center; overflow-y: auto;
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+.lock[hidden] { display: none; }
+.lock-in { width: 100%; max-width: 340px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.lock-in h2 { margin: 0; font: 800 2.2rem/1 var(--f-display); }
+.lock-in .kicker { margin: 0; font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.lock-msg { margin: 0; min-height: 26px; font-weight: 700; }
+.lock-msg.bad { color: var(--crit); }
+.dots { display: flex; gap: 14px; margin: 2px 0 6px; }
+.dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--muted); }
+.dot.on { background: var(--accent); border-color: var(--accent); }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; }
+.pad button { height: 68px; border-radius: 18px; border: 2px solid var(--line); background: var(--surface); font: 800 28px var(--f-display); }
+.pad button:active { transform: scale(.96); background: var(--bg); }
+.pad button.fn { font: 800 16px var(--f-body); color: var(--muted); }
+.srow { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); }
+.srow:first-of-type { border-top: 0; }
+.sbtns { display: flex; gap: 8px; }
+.btn.small { min-height: 44px; padding: 6px 14px; font-size: 15px; }
+@media (min-width: 700px) {
+  body { font-size: 18px; padding-block: 28px 130px; }
+  .overlay { align-items: center; padding: 24px; }
+  .sheet { border-radius: 22px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sheet { animation: rise .2s ease-out; }
+  @keyframes rise { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+}
+
+.lock-in form { width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.lock-in .lab { display: flex; flex-direction: column; gap: 6px; text-align: left; font-weight: 700; }
+.lock-in .field { text-align: center; }
+.linkbtn { border: 0; background: none; color: var(--accent); font-weight: 800; font-size: 16px; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; padding: 4px 10px; }
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <p class="kicker">Stock check</p>
+    <h1>Cafe Komorebi</h1>
+    <div class="sum" id="sum" aria-live="polite"></div>
+    <div class="who" id="who"></div>
+  </header>
+
+  <input class="field" id="q" type="search" placeholder="Search an item" aria-label="Search an item" autocomplete="off">
+  <div class="chips" id="chips" role="group" aria-label="Choose a group"></div>
+
+  <main id="list" aria-live="polite"></main>
+</div>
+
+<nav class="bar" aria-label="Views">
+  <div class="bar-in">
+    <button class="tab" id="tab-all" type="button" aria-pressed="true"><span class="tn" id="n-all">0</span>All items</button>
+    <button class="tab" id="tab-order" type="button" aria-pressed="false"><span class="tn" id="n-order">0</span>To order</button>
+    <button class="tab" id="tab-hist" type="button" aria-pressed="false"><span class="tn" id="n-hist">0</span>History</button>
+    <button class="tab add" id="add" type="button"><span aria-hidden="true">+</span>Add</button>
+  </div>
+</nav>
+
+<div class="lock" id="lock"></div>
+<div id="layer"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script type="module">
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getFirestore, collection, doc, getDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { firebaseConfig, OWNER_EMAIL } from "./firebase-config.js";
+
+var CATS = ["Dry ingredients", "Spices & masalas", "Sauces & spreads", "Nuts & dry fruits", "Beverages", "Dairy & oil", "Cutlery & crockery", "Packaging & takeaway", "Cleaning", "Kitchen supplies", "Other"];
+var UNITS = ["kg", "g", "L", "ml", "pkt", "bottle", "pcs", "box", "bag"];
+var SUFFIX = "-komorebi", IDLE = 15 * 60 * 1000;
+var OWNER = String(OWNER_EMAIL || "").toLowerCase();
+
+var items = new Map(), logs = [], staff = [];
+var ready = false, tab = "all", catFilter = "", query_ = "";
+var me = null, isAdmin = false, staffOpen = false, lastActive = Date.now();
+var unsubs = [];
+var timers = new Map(), inflight = new Set(), dirty = new Set(), burst = new Map();
+var app, auth, db;
+
+var $ = function (id) { return document.getElementById(id); };
+var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+var status = function (i) { return i.qty <= 0 ? "out" : i.qty <= i.min ? "low" : "ok"; };
+var LABEL = { ok: "Enough", low: "Running low", out: "Finished" };
+var newId = function () { return "t" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); };
+var num = function (v, d) { var n = parseFloat(v); return isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : d; };
+var round2 = function (n) { return Math.round(n * 100) / 100; };
+function stepFor(u) { u = String(u || "").toLowerCase().trim(); return (u === "kg" || u === "l" || u === "ltr" || u === "litre") ? 0.5 : (u === "g" || u === "gm" || u === "ml") ? 50 : 1; }
+function slugify(n) { return String(n || "").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+
+function norm(id, d) {
+  d = d || {};
+  return { id: id, name: String(d.name || "Untitled item"), category: String(d.category || "Other"), qty: num(d.qty, 0), min: num(d.min, 0), unit: String(d.unit || ""), location: String(d.location || ""), createdAt: String(d.createdAt || ""), updatedAt: String(d.updatedAt || ""), updatedBy: String(d.updatedBy || "") };
+}
+function strip(i) { return { name: i.name, category: i.category, qty: i.qty, min: i.min, unit: i.unit, location: i.location, createdAt: i.createdAt || "", updatedAt: i.updatedAt || "", updatedBy: i.updatedBy || "" }; }
+
+var toastTimer;
+function toast(msg) {
+  var t = $("toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, 3400);
+}
+
+/* ---------- dates ---------- */
+var pad = function (n) { return n < 10 ? "0" + n : "" + n; };
+var ymd = function (d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); };
+function mondayOf(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+function fromYmd(k) { var p = String(k).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function dmy(d) { return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + "/" + d.getFullYear(); }
+function short(d) { try { return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" }); } catch (e) { return dmy(d); } }
+function when(iso) {
+  var d = new Date(iso); if (isNaN(d)) return "";
+  try { return d.toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }); }
+  catch (e) { return d.toString(); }
+}
+
+/* ---------- saving ---------- */
+function touch(it) { if (!burst.has(it.id)) burst.set(it.id, it.qty); }
+function stampItem(it) { it.updatedAt = new Date().toISOString(); it.updatedBy = me ? me.name : ""; }
+
+function logEntry(e) {
+  var now = new Date();
+  var rec = { id: "l" + now.getTime().toString(36) + Math.random().toString(36).slice(2, 6), at: now.toISOString(), week: ymd(mondayOf(now)),
+    itemId: e.item.id, name: e.item.name, category: e.item.category, unit: e.item.unit, type: e.type };
+  if (e.from != null) rec.from = e.from;
+  if (e.to != null) rec.to = e.to;
+  if (e.note) rec.note = e.note;
+  if (me) { rec.by = me.id; rec.byName = me.name; }
+  logs.unshift(rec);
+  var d = Object.assign({}, rec); delete d.id;
+  setDoc(doc(db, "log", rec.id), d).catch(function () { toast("Could not save the history entry. Check the internet."); });
+  if (tab === "hist") render(); else renderChrome();
+}
+function saveSoon(id) {
+  dirty.add(id);
+  clearTimeout(timers.get(id));
+  timers.set(id, setTimeout(function () { timers.delete(id); save(id); }, 400));
+}
+function save(id) {
+  if (inflight.has(id)) { timers.set(id, setTimeout(function () { timers.delete(id); save(id); }, 200)); return; }
+  var it = items.get(id);
+  if (!it || !me) { dirty.delete(id); return; }
+  var start = burst.get(id);
+  if (start !== undefined) {
+    burst.delete(id);
+    if (start !== it.qty) { logEntry({ item: it, type: "count", from: start, to: it.qty }); stampItem(it); }
+  }
+  inflight.add(id);
+  setDoc(doc(db, "items", id), strip(it)).catch(function () {
+    toast("Could not save. Check the internet and try again.");
+  }).then(function () {
+    inflight.delete(id);
+    if (!timers.has(id)) dirty.delete(id);
+  });
+}
+
+function startListeners() {
+  unsubs.push(onSnapshot(collection(db, "items"), function (snap) {
+    var next = new Map();
+    snap.docs.forEach(function (d) { next.set(d.id, dirty.has(d.id) && items.has(d.id) ? items.get(d.id) : norm(d.id, d.data())); });
+    items.forEach(function (v, id) { if (dirty.has(id) && !next.has(id)) next.set(id, v); });
+    items = next; ready = true; render();
+  }, function () { toast("Could not load the stock. Check the internet and reload."); }));
+  unsubs.push(onSnapshot(query(collection(db, "log"), orderBy("at", "desc"), limit(500)), function (snap) {
+    logs = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+    if (tab === "hist") render(); else renderChrome();
+  }, function () {}));
+  if (isAdmin) {
+    unsubs.push(onSnapshot(collection(db, "staff"), function (snap) {
+      staff = snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).filter(function (x) { return x.active !== false; });
+      renderWho();
+      if (staffOpen && $("sf-name") && !$("sf-name").value && !$("sf-pin").value) openStaff();
+    }, function () {}));
+  }
+}
+function teardown() {
+  unsubs.forEach(function (u) { try { u(); } catch (e) {} });
+  unsubs = []; items = new Map(); logs = []; staff = []; ready = false; me = null; isAdmin = false; staffOpen = false;
+  timers.forEach(function (t) { clearTimeout(t); }); timers.clear(); inflight.clear(); dirty.clear(); burst.clear();
+  $("layer").innerHTML = ""; $("who").innerHTML = ""; $("list").innerHTML = "";
+}
+
+/* ---------- drawing ---------- */
+function visible() {
+  var q = query_.trim().toLowerCase();
+  return Array.from(items.values()).filter(function (i) {
+    if (tab === "order" && status(i) === "ok") return false;
+    if (catFilter && i.category !== catFilter) return false;
+    if (q && (i.name + " " + i.location + " " + i.category).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+}
+function cardHTML(i) {
+  var s = status(i);
+  var meta = [i.location, "order at " + i.min + (i.unit ? " " + i.unit : "")].filter(Boolean).join(" · ");
+  return '<article class="card" data-id="' + esc(i.id) + '">' +
+    '<div class="top"><div class="nm"><div class="name">' + esc(i.name) + '</div><div class="meta">' + esc(meta) + '</div>' + (i.updatedAt ? '<div class="upd">Updated ' + esc(when(i.updatedAt)) + (i.updatedBy ? " by " + esc(i.updatedBy) : "") + '</div>' : "") + '</div>' +
+    '<span class="pill ' + s + '">' + LABEL[s] + '</span></div>' +
+    '<div class="step">' +
+    '<button class="sb" type="button" data-act="dec" aria-label="Less ' + esc(i.name) + '"' + (i.qty === 0 ? " disabled" : "") + '>−</button>' +
+    '<button class="count ' + s + '" type="button" data-act="set" aria-label="' + esc(i.name) + ': ' + i.qty + ' ' + esc(i.unit) + '. Tap to type a number"><b>' + i.qty + '</b><i>' + esc(i.unit || "in stock") + '</i></button>' +
+    '<button class="sb plus" type="button" data-act="inc" aria-label="More ' + esc(i.name) + '">+</button></div>' +
+    '<button class="editlink" type="button" data-act="edit">Edit details</button></article>';
+}
+function renderWho() {
+  var h = "";
+  if (me) h += '<span>Entering as <b>' + esc(me.name) + '</b></span><button class="whobtn" type="button" data-w="switch">' + (isAdmin ? "Sign out" : "Switch person") + '</button>';
+  if (isAdmin) h += '<button class="whobtn' + (staff.length ? "" : " hot") + '" type="button" data-w="staff">' + (staff.length ? "Staff PINs" : "Set up staff PINs") + '</button>';
+  $("who").innerHTML = h;
+}
+function renderChrome() {
+  var all = Array.from(items.values());
+  var low = all.filter(function (i) { return status(i) === "low"; }).length;
+  var out = all.filter(function (i) { return status(i) === "out"; }).length;
+  $("n-all").textContent = all.length;
+  $("n-order").textContent = low + out;
+  $("tab-all").setAttribute("aria-pressed", tab === "all");
+  $("tab-order").setAttribute("aria-pressed", tab === "order");
+  $("tab-hist").setAttribute("aria-pressed", tab === "hist");
+  var wk = ymd(mondayOf(new Date()));
+  $("n-hist").textContent = logs.filter(function (l) { return l.week === wk; }).length;
+  $("chips").hidden = tab === "hist";
+  var parts = [];
+  if (!ready) parts = [];
+  else if (!low && !out) parts.push('<span class="ok">Everything is stocked</span>');
+  else {
+    if (out) parts.push('<span class="crit">' + out + ' finished</span>');
+    if (low) parts.push('<span class="warn">' + low + ' running low</span>');
+  }
+  $("sum").innerHTML = parts.join("");
+  var cats = CATS.slice();
+  all.forEach(function (i) { if (cats.indexOf(i.category) < 0) cats.push(i.category); });
+  cats = cats.filter(function (c) { return all.some(function (i) { return i.category === c; }) || c === catFilter; });
+  $("chips").innerHTML = '<button class="chip" type="button" data-c="" aria-pressed="' + (catFilter === "") + '">Everything</button>' +
+    cats.map(function (c) { return '<button class="chip" type="button" data-c="' + esc(c) + '" aria-pressed="' + (catFilter === c) + '">' + esc(c) + '</button>'; }).join("");
+}
+function render() {
+  renderChrome();
+  var list = $("list");
+  if (!ready) { list.innerHTML = '<div class="empty">Loading…</div>'; return; }
+  if (tab === "hist") { renderHistory(); return; }
+  if (!items.size) {
+    list.innerHTML = '<div class="empty"><div>No items yet. Add the first item to start' + (isAdmin ? ', or import your list from Staff PINs.' : '.') + '</div><button class="btn primary" type="button" data-act="add">Add item</button></div>';
+    return;
+  }
+  var shown = visible();
+  if (!shown.length) {
+    list.innerHTML = '<div class="empty">' + (tab === "order" && !query_ && !catFilter ? "Nothing to order right now. Everything is above its order level." : "No item found. Clear the search or pick Everything.") + '</div>';
+    return;
+  }
+  var html = "";
+  if (tab === "order") html += '<button class="btn primary full" type="button" data-act="copy" style="margin-bottom:14px">Copy order list</button>';
+  var groups = {};
+  shown.forEach(function (i) { (groups[i.category] = groups[i.category] || []).push(i); });
+  var order = Object.keys(groups).sort(function (a, b) {
+    var ia = CATS.indexOf(a), ib = CATS.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.localeCompare(b);
+  });
+  html += '<div style="display:flex;flex-direction:column;gap:22px">' + order.map(function (c) {
+    var rows = groups[c].sort(function (a, b) { return a.name.localeCompare(b.name); });
+    return '<section class="group"><h2>' + esc(c) + ' <small>' + rows.length + '</small></h2>' + rows.map(cardHTML).join("") + '</section>';
+  }).join("") + '</div>';
+  list.innerHTML = html;
+}
+function entryText(l) {
+  var u = l.unit ? " " + esc(l.unit) : "";
+  if (l.type === "added") return "added as a new item: " + (l.to == null ? 0 : l.to) + u;
+  if (l.type === "deleted") return "deleted (had " + (l.from == null ? 0 : l.from) + u + ")";
+  if (l.type === "edited") return "details changed" + (l.note ? ": " + esc(l.note) : "");
+  var d = round2((l.to || 0) - (l.from || 0));
+  return (l.from || 0) + " → " + (l.to || 0) + u + ' <span class="chg ' + (d >= 0 ? "up" : "down") + '">' + (d >= 0 ? "+" : "−") + Math.abs(d) + "</span>";
+}
+function weekLabel(k) {
+  var cur = ymd(mondayOf(new Date()));
+  var last = ymd(mondayOf(new Date(Date.now() - 7 * 864e5)));
+  var a = fromYmd(k), b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 6);
+  return [k === cur ? "This week" : k === last ? "Last week" : "Week of " + short(a), short(a) + " – " + short(b)];
+}
+function renderHistory() {
+  var q = query_.trim().toLowerCase();
+  var rows = logs.filter(function (l) { return !q || (l.name + " " + l.category).toLowerCase().indexOf(q) >= 0; });
+  var html = '<p class="hist-note">Every change is saved here with the date and time it was entered, one week at a time.</p>' +
+    '<div class="hist-tools"><button class="btn" type="button" data-act="dl-log">Download history (Excel)</button><button class="btn" type="button" data-act="dl-stock">Download stock list</button></div>';
+  if (!rows.length) {
+    html += '<div class="empty">' + (logs.length ? "No history for that search." : "No entries yet. When someone changes a count or adds an item, it appears here with the date and time.") + '</div>';
+    $("list").innerHTML = '<div style="display:flex;flex-direction:column;gap:16px">' + html + '</div>';
+    return;
+  }
+  var weeks = [], cur = null;
+  rows.forEach(function (l) {
+    var k = l.week || ymd(mondayOf(new Date(l.at)));
+    if (!cur || cur.k !== k) { cur = { k: k, rows: [] }; weeks.push(cur); }
+    cur.rows.push(l);
+  });
+  html += weeks.map(function (w) {
+    var lab = weekLabel(w.k);
+    return '<section class="week"><h2>' + esc(lab[0]) + ' <small>' + esc(lab[1]) + ' · ' + w.rows.length + (w.rows.length === 1 ? " entry" : " entries") + '</small></h2><div class="log">' +
+      w.rows.map(function (l) {
+        return '<div class="ent"><div class="et">' + esc(when(l.at)) + (l.byName ? " · " + esc(l.byName) : "") + '</div><div class="ed"><b>' + esc(l.name) + '</b> ' + entryText(l) + '</div></div>';
+      }).join("") + '</div></section>';
+  }).join("");
+  $("list").innerHTML = '<div style="display:flex;flex-direction:column;gap:16px">' + html + '</div>';
+}
+
+/* ---------- files for Excel ---------- */
+function cell(v, sep) { v = v == null ? "" : String(v); return (v.indexOf(sep) >= 0 || /["\n\r]/.test(v)) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+function table(head, rows, sep) { return [head].concat(rows).map(function (r) { return r.map(function (v) { return cell(v, sep); }).join(sep); }).join("\r\n"); }
+function historyRows() {
+  var names = { added: "Added new item", count: "Count changed", edited: "Details edited", deleted: "Deleted" };
+  return logs.slice().reverse().map(function (l) {
+    var d = new Date(l.at), ch = "";
+    if (l.type === "count") ch = round2((l.to || 0) - (l.from || 0));
+    if (l.type === "added") ch = l.to || 0;
+    return [dmy(fromYmd(l.week || ymd(mondayOf(d)))), dmy(d), pad(d.getHours()) + ":" + pad(d.getMinutes()), l.byName || "", l.name, l.category, names[l.type] || l.type,
+      l.from == null ? "" : l.from, l.to == null ? "" : l.to, ch, l.unit || "", l.note || ""];
+  });
+}
+var HIST_HEAD = ["Week starting", "Date", "Time", "Entered by", "Item", "Group", "What happened", "From", "To", "Change", "Unit", "Note"];
+function stockRows() {
+  return Array.from(items.values()).sort(function (a, b) { return a.category.localeCompare(b.category) || a.name.localeCompare(b.name); }).map(function (i) {
+    var d = i.updatedAt ? new Date(i.updatedAt) : null;
+    return [i.category, i.name, i.qty, i.unit, i.min, LABEL[status(i)], i.location, d && !isNaN(d) ? dmy(d) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) : "", i.updatedBy || ""];
+  });
+}
+var STOCK_HEAD = ["Group", "Item", "On hand", "Unit", "Order at", "Status", "Where kept", "Last updated", "Updated by"];
+function saveTable(name, head, rows) {
+  if (!rows.length) { toast("Nothing to download yet."); return; }
+  var blob = new Blob(["﻿" + table(head, rows, ",")], { type: "text/csv;charset=utf-8" });
+  var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  toast("Saved " + name);
+}
+
+/* ---------- sheets ---------- */
+function closeSheet() { staffOpen = false; $("layer").innerHTML = ""; }
+function openSheet(inner) {
+  $("layer").innerHTML = '<div class="overlay" data-close="1"><div class="sheet" role="dialog" aria-modal="true">' + inner + '</div></div>';
+}
+function refreshCard(el, act) {
+  var i = items.get(el.dataset.id);
+  if (!i) return;
+  var tmp = document.createElement("div");
+  tmp.innerHTML = cardHTML(i);
+  var fresh = tmp.firstChild;
+  el.replaceWith(fresh);
+  var b = fresh.querySelector('[data-act="' + act + '"]');
+  if (b && !b.disabled) b.focus();
+  renderChrome();
+}
+function openCount(id) {
+  var i = items.get(id);
+  if (!i) return;
+  openSheet('<h3>How many ' + esc(i.name) + ' now?</h3>' +
+    '<form id="cf"><label>Number' + (i.unit ? ' (' + esc(i.unit) + ')' : '') + '<input class="field" id="c-qty" type="number" inputmode="decimal" min="0" step="any" value="' + i.qty + '"></label>' +
+    '<div class="btns"><button class="btn primary" type="submit">Save</button><button class="btn" type="button" data-close="1">Cancel</button></div></form>');
+  var inp = $("c-qty"); inp.focus(); inp.select();
+  $("cf").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var nq = num(inp.value, i.qty);
+    if (nq !== i.qty) { touch(i); i.qty = nq; }
+    saveSoon(id); closeSheet(); render();
+    toast(i.name + ": " + i.qty + (i.unit ? " " + i.unit : ""));
+  });
+}
+function openForm(id) {
+  var i = id ? items.get(id) : { name: "", category: "Dry ingredients", qty: 1, min: 1, unit: "kg", location: "" };
+  if (!i) return;
+  var cats = CATS.slice();
+  if (cats.indexOf(i.category) < 0) cats.push(i.category);
+  openSheet(
+    '<h3>' + (id ? "Edit item" : "Add item") + '</h3>' +
+    '<form id="f" autocomplete="off">' +
+    '<label>Item name<input class="field" id="f-name" required maxlength="80" placeholder="For example, Rice" value="' + esc(i.name) + '"></label>' +
+    '<label>Group<select class="field" id="f-cat">' + cats.map(function (c) { return '<option' + (c === i.category ? " selected" : "") + '>' + esc(c) + '</option>'; }).join("") + '</select></label>' +
+    '<div class="two"><label>How many now<input class="field" id="f-qty" type="number" inputmode="decimal" min="0" step="any" value="' + i.qty + '"></label>' +
+    '<label>Counted in<input class="field" id="f-unit" list="units" maxlength="16" value="' + esc(i.unit) + '"></label></div>' +
+    '<datalist id="units">' + UNITS.map(function (u) { return '<option value="' + u + '">'; }).join("") + '</datalist>' +
+    '<label>Order when this many or less<input class="field" id="f-min" type="number" inputmode="decimal" min="0" step="any" value="' + i.min + '"><span class="help">The item shows as "Running low" at this number.</span></label>' +
+    '<label>Where it is kept<input class="field" id="f-loc" maxlength="40" placeholder="For example, Dry store 1" value="' + esc(i.location) + '"></label>' +
+    '<div class="btns"><button class="btn primary" type="submit">' + (id ? "Save" : "Add item") + '</button>' +
+    '<button class="btn" type="button" data-close="1">Cancel</button>' +
+    (id ? '<button class="btn danger" type="button" id="del">Delete item</button>' : "") + '</div></form>'
+  );
+  $("f-name").focus();
+  $("f").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = $("f-name").value.trim();
+    if (!name) { $("f-name").focus(); return; }
+    var rec = norm(id || newId(), {
+      name: name, category: $("f-cat").value, location: $("f-loc").value.trim(), unit: $("f-unit").value.trim(),
+      qty: $("f-qty").value, min: $("f-min").value
+    });
+    var old = id ? items.get(id) : null;
+    if (!old) {
+      rec.createdAt = new Date().toISOString(); stampItem(rec);
+      items.set(rec.id, rec);
+      logEntry({ item: rec, type: "added", to: rec.qty });
+    } else {
+      rec.createdAt = old.createdAt; rec.updatedAt = old.updatedAt; rec.updatedBy = old.updatedBy;
+      var ch = [];
+      if (old.name !== rec.name) ch.push("name");
+      if (old.category !== rec.category) ch.push("group");
+      if (old.unit !== rec.unit) ch.push("unit");
+      if (old.min !== rec.min) ch.push("order level " + old.min + " → " + rec.min);
+      if (old.location !== rec.location) ch.push("where kept");
+      if (rec.qty !== old.qty) touch(old);
+      items.set(rec.id, rec);
+      if (ch.length) { stampItem(rec); logEntry({ item: rec, type: "edited", note: ch.join(", ") }); }
+    }
+    saveSoon(rec.id); closeSheet(); render();
+    toast(id ? "Saved " + rec.name : "Added " + rec.name);
+  });
+  var del = $("del");
+  if (del) del.addEventListener("click", function () {
+    if (!del.classList.contains("armed")) { del.classList.add("armed"); del.textContent = "Tap again to delete"; return; }
+    var gone = items.get(id);
+    clearTimeout(timers.get(id)); timers.delete(id); dirty.delete(id); burst.delete(id);
+    if (gone) logEntry({ item: gone, type: "deleted", from: gone.qty });
+    items.delete(id);
+    deleteDoc(doc(db, "items", id)).catch(function () { toast("Could not delete. Try again."); });
+    closeSheet(); render(); toast("Deleted " + (gone ? gone.name : "item"));
+  });
+}
+function orderText() {
+  var need = Array.from(items.values()).filter(function (i) { return status(i) !== "ok"; })
+    .sort(function (a, b) { return a.qty - b.qty || a.name.localeCompare(b.name); });
+  if (!need.length) return "";
+  return "Cafe Komorebi order list\n" + need.map(function (i) {
+    return "- " + i.name + ": " + (i.qty === 0 ? "finished" : i.qty + (i.unit ? " " + i.unit : "") + " left");
+  }).join("\n");
+}
+function copyOrder() {
+  var text = orderText();
+  if (!text) { toast("Nothing to order right now."); return; }
+  var fallback = function () {
+    openSheet('<h3>Order list</h3><textarea class="field" id="ta" readonly>' + esc(text) + '</textarea><div class="btns"><button class="btn" type="button" data-close="1">Close</button></div>');
+    var ta = $("ta"); ta.focus(); ta.select();
+  };
+  try { navigator.clipboard.writeText(text).then(function () { toast("Order list copied. Paste it in WhatsApp."); }, fallback); }
+  catch (e) { fallback(); }
+}
+
+/* ---------- staff (owner only) ---------- */
+function secondaryAuth() {
+  var a = getApps().filter(function (x) { return x.name === "staffsetup"; })[0];
+  return getAuth(a || initializeApp(firebaseConfig, "staffsetup"));
+}
+async function createLogin(name, pin) {
+  var slug = slugify(name);
+  if (!slug) throw new Error("name");
+  var cur = await getDoc(doc(db, "login", slug));
+  var ver = cur.exists() ? (cur.data().ver || 1) : 0;
+  var oldUid = cur.exists() ? (cur.data().uid || "") : "";
+  var sauth = secondaryAuth(), cred = null, email = "";
+  for (var t = 0; t < 6 && !cred; t++) {
+    ver += 1; email = slug + "-" + ver + "@staff.cafe-komorebi.app";
+    try { cred = await createUserWithEmailAndPassword(sauth, email, pin + SUFFIX); }
+    catch (e) { if (e.code !== "auth/email-already-in-use") throw e; }
+  }
+  if (!cred) throw new Error("create");
+  var uid = cred.user.uid;
+  try { await signOut(sauth); } catch (e) {}
+  var b = writeBatch(db);
+  b.set(doc(db, "staff", uid), { name: name, slug: slug, active: true, createdAt: new Date().toISOString() });
+  b.set(doc(db, "login", slug), { email: email, name: name, ver: ver, uid: uid });
+  if (oldUid && oldUid !== uid) b.set(doc(db, "staff", oldUid), { active: false }, { merge: true });
+  await b.commit();
+  if (!staff.some(function (x) { return x.id === uid; })) staff.push({ id: uid, name: name, slug: slug, active: true });
+}
+function openStaff() {
+  staffOpen = true;
+  var rows = staff.slice().sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); }).map(function (m) {
+    return '<div class="srow"><b>' + esc(m.name) + '</b><div class="sbtns"><button class="btn small" type="button" data-s="reset" data-id="' + esc(m.id) + '">New PIN</button>' +
+      '<button class="btn small danger" type="button" data-s="remove" data-id="' + esc(m.id) + '">Remove</button></div></div>';
+  }).join("");
+  openSheet('<h3>Staff PINs</h3>' +
+    (rows || '<p class="csvnote">No staff yet. Add each person with a name and their own 4-digit PIN. Staff log in on their phone with that name and PIN.</p>') +
+    '<form id="sf" autocomplete="off" style="margin-top:14px"><label>Staff name<input class="field" id="sf-name" maxlength="40" placeholder="For example, Lakshmi"></label>' +
+    '<label>4-digit PIN<input class="field" id="sf-pin" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="0000"></label>' +
+    '<div class="btns"><button class="btn primary" type="submit">Add staff</button></div></form>' +
+    '<div class="btns" style="margin-top:18px"><button class="btn" type="button" data-s="import">Import items from a file</button>' +
+    '<input type="file" id="imp" accept=".json,application/json" hidden>' +
+    '<button class="btn" type="button" data-s="done">Done</button></div>');
+  $("sf").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var name = $("sf-name").value.trim(), p = $("sf-pin").value.trim();
+    if (!name) { $("sf-name").focus(); return; }
+    if (!slugify(name)) { toast("Use letters or numbers in the name."); return; }
+    if (!/^\d{4}$/.test(p)) { toast("PIN must be 4 numbers."); $("sf-pin").focus(); return; }
+    var btn = e.target.querySelector("button[type=submit]"); btn.disabled = true;
+    createLogin(name, p).then(function () { toast("Added " + name); openStaff(); }).catch(function (err) {
+      toast(err && err.code === "auth/weak-password" ? "That PIN is too weak. Try another." : "Could not add. Check the internet and try again.");
+    }).then(function () { btn.disabled = false; });
+  });
+  $("imp").addEventListener("change", function (e) { importFile(e.target.files && e.target.files[0]); });
+}
+function staffAction(b) {
+  var a = b.dataset.s, id = b.dataset.id;
+  if (a === "done") { closeSheet(); return; }
+  if (a === "back") { openStaff(); return; }
+  if (a === "import") { $("imp").click(); return; }
+  var m = staff.filter(function (x) { return x.id === id; })[0];
+  if (!m) return;
+  if (a === "remove") {
+    if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Tap again"; return; }
+    var bt = writeBatch(db);
+    bt.set(doc(db, "staff", id), { active: false }, { merge: true });
+    if (m.slug) bt.delete(doc(db, "login", m.slug));
+    bt.commit().then(function () { toast("Removed " + m.name); }, function () { toast("Could not remove. Try again."); });
+    return;
+  }
+  if (a === "reset") {
+    openSheet('<h3>New PIN for ' + esc(m.name) + '</h3><form id="rf" autocomplete="off"><label>4-digit PIN<input class="field" id="rf-pin" inputmode="numeric" maxlength="4" placeholder="0000"></label>' +
+      '<div class="btns"><button class="btn primary" type="submit">Save PIN</button><button class="btn" type="button" data-s="back">Back</button></div></form>');
+    $("rf-pin").focus();
+    $("rf").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var p = $("rf-pin").value.trim();
+      if (!/^\d{4}$/.test(p)) { toast("PIN must be 4 numbers."); return; }
+      createLogin(m.name, p).then(function () { toast("New PIN saved for " + m.name); staffOpen = true; openStaff(); }, function () { toast("Could not save. Try again."); });
+    });
+  }
+}
+async function importFile(file) {
+  if (!file) return;
+  try {
+    var data = JSON.parse(await file.text());
+    var list = (data.items || []).filter(function (x) { return x && x.id && x.name; });
+    if (!list.length) { toast("No items found in that file."); return; }
+    var n = 0;
+    for (var s = 0; s < list.length; s += 400) {
+      var bt = writeBatch(db);
+      list.slice(s, s + 400).forEach(function (x) { bt.set(doc(db, "items", String(x.id)), strip(norm(String(x.id), x))); n += 1; });
+      await bt.commit();
+    }
+    toast("Imported " + n + " items.");
+  } catch (e) { toast("Could not import that file. Use the file Claude gave you."); }
+}
+
+/* ---------- sign in ---------- */
+var stage = "name", loginName = "", loginEmail = "", pin = "", loginMsg = "", loginBad = false, busy = false;
+try { loginName = localStorage.getItem("komorebi-last-name") || ""; } catch (e) {}
+
+function showLock(st, msg, bad) {
+  stage = st; loginMsg = msg || ""; loginBad = !!bad;
+  var el = $("lock"); el.hidden = false;
+  var head = '<p class="kicker">Stock check</p><h2>Cafe Komorebi</h2>';
+  if (st === "loading") { el.innerHTML = '<div class="lock-in">' + head + '<p class="lock-msg">Opening…</p></div>'; return; }
+  var m = '<p class="lock-msg' + (bad ? " bad" : "") + '" aria-live="polite">' + esc(msg || "") + '</p>';
+  if (st === "name") {
+    el.innerHTML = '<div class="lock-in">' + head + m +
+      '<form id="nf" autocomplete="off"><label class="lab">Your name<input class="field" id="ln" maxlength="40" autocapitalize="words" value="' + esc(loginName) + '" placeholder="For example, Lakshmi"></label>' +
+      '<button class="btn primary full" type="submit">Next</button></form>' +
+      '<button class="linkbtn" type="button" data-l="owner">Owner login</button></div>';
+    return;
+  }
+  if (st === "owner") {
+    el.innerHTML = '<div class="lock-in">' + head + m +
+      '<form id="of" autocomplete="on"><label class="lab">Owner email<input class="field" id="oe" type="email" autocomplete="username" value="' + esc(OWNER) + '"></label>' +
+      '<label class="lab">Password<input class="field" id="op" type="password" autocomplete="current-password"></label>' +
+      '<button class="btn primary full" type="submit">Sign in</button></form>' +
+      '<button class="linkbtn" type="button" data-l="name">Back to staff login</button></div>';
+    return;
+  }
+  var dots = "", keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "clear", "0", "back"];
+  for (var i = 0; i < 4; i++) dots += '<span class="dot' + (i < pin.length ? " on" : "") + '"></span>';
+  el.innerHTML = '<div class="lock-in">' + head + '<p class="lock-msg' + (bad ? " bad" : "") + '" aria-live="polite">' + esc(msg || "Hi, " + loginName + ". Enter your 4-digit PIN.") + '</p>' +
+    '<div class="dots" aria-hidden="true">' + dots + '</div><div class="pad">' +
+    keys.map(function (k) {
+      var fn = k === "clear" || k === "back";
+      return '<button type="button" class="' + (fn ? "fn" : "") + '" data-k="' + k + '" aria-label="' + (k === "back" ? "Delete last digit" : k === "clear" ? "Clear" : k) + '">' + (k === "back" ? "Delete" : k === "clear" ? "Clear" : k) + '</button>';
+    }).join("") + '</div><button class="linkbtn" type="button" data-l="name">Not you?</button></div>';
+}
+function authMessage(e) {
+  var c = e && e.code || "";
+  if (c === "auth/invalid-credential" || c === "auth/wrong-password" || c === "auth/user-not-found" || c === "auth/invalid-login-credentials") return "That PIN is not right. Try again.";
+  if (c === "auth/too-many-requests") return "Too many tries. Wait a few minutes.";
+  if (c === "auth/network-request-failed") return "No internet. Check the connection.";
+  if (c === "auth/invalid-api-key" || c === "auth/api-key-not-valid.-please-pass-a-valid-api-key.") return "The page settings are wrong. Ask the owner to check firebase-config.js.";
+  if (c === "auth/operation-not-allowed") return "Email sign-in is not turned on in Firebase.";
+  return "Could not sign in. Try again.";
+}
+$("lock").addEventListener("submit", async function (e) {
+  e.preventDefault();
+  if (busy) return;
+  if (e.target.id === "nf") {
+    var name = $("ln").value.trim(), slug = slugify(name);
+    loginName = name;
+    if (!slug) { showLock("name", "Type your name first.", true); return; }
+    busy = true;
+    try {
+      var snap = await getDoc(doc(db, "login", slug));
+      if (!snap.exists()) { busy = false; showLock("name", "We could not find that name. Check the spelling or ask the owner.", true); return; }
+      loginEmail = snap.data().email; loginName = snap.data().name || name;
+      try { localStorage.setItem("komorebi-last-name", loginName); } catch (er) {}
+      pin = ""; busy = false; showLock("pin");
+    } catch (er) { busy = false; showLock("name", authMessage(er) === "Could not sign in. Try again." ? "Could not check the name. Check the internet." : authMessage(er), true); }
+  } else if (e.target.id === "of") {
+    busy = true;
+    try { await signInWithEmailAndPassword(auth, $("oe").value.trim(), $("op").value); busy = false; }
+    catch (er) { busy = false; showLock("owner", authMessage(er).replace("That PIN", "That password"), true); }
+  }
+});
+$("lock").addEventListener("click", async function (e) {
+  var l = e.target.closest("[data-l]");
+  if (l) { pin = ""; showLock(l.dataset.l); return; }
+  var b = e.target.closest("[data-k]");
+  if (!b || busy) return;
+  var k = b.dataset.k;
+  if (k === "clear") pin = ""; else if (k === "back") pin = pin.slice(0, -1); else if (pin.length < 4) pin += k;
+  showLock("pin");
+  if (pin.length === 4) {
+    busy = true;
+    var p = pin; pin = "";
+    try { await signInWithEmailAndPassword(auth, loginEmail, p + SUFFIX); busy = false; }
+    catch (er) { busy = false; showLock("pin", authMessage(er), true); }
+  }
+});
+
+function startSession(user) {
+  var isOwner = (user.email || "").toLowerCase() === OWNER;
+  var go = function (name, admin) {
+    me = { id: user.uid, name: name }; isAdmin = admin; lastActive = Date.now();
+    $("lock").hidden = true; $("lock").innerHTML = "";
+    startListeners(); renderWho(); render();
+    toast("Hi, " + name);
+  };
+  if (isOwner) { go("Owner", true); return; }
+  getDoc(doc(db, "staff", user.uid)).then(function (s) {
+    if (!s.exists() || s.data().active === false) { signOut(auth).then(function () { showLock("name", "This login is no longer active. Ask the owner.", true); }); return; }
+    go(s.data().name || "Staff", false);
+  }, function () { signOut(auth).then(function () { showLock("name", "Could not open your account. Try again.", true); }); });
+}
+
+/* ---------- events ---------- */
+$("list").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-act]");
+  if (!b) return;
+  var act = b.dataset.act;
+  if (act === "add") { openForm(); return; }
+  if (act === "copy") { copyOrder(); return; }
+  if (act === "dl-log") { saveTable("komorebi-stock-history.csv", HIST_HEAD, historyRows()); return; }
+  if (act === "dl-stock") { saveTable("komorebi-stock-list.csv", STOCK_HEAD, stockRows()); return; }
+  var card = b.closest(".card");
+  if (!card) return;
+  var id = card.dataset.id, it = items.get(id);
+  if (!it) return;
+  if (act === "edit") { openForm(id); return; }
+  if (act === "set") { openCount(id); return; }
+  if (act === "inc") { touch(it); it.qty = round2(it.qty + stepFor(it.unit)); }
+  else if (act === "dec") { if (it.qty === 0) return; touch(it); it.qty = Math.max(0, round2(it.qty - stepFor(it.unit))); }
+  saveSoon(id);
+  refreshCard(card, act);
+});
+$("chips").addEventListener("click", function (e) { var b = e.target.closest("[data-c]"); if (b) { catFilter = b.dataset.c; render(); } });
+$("tab-all").addEventListener("click", function () { tab = "all"; render(); });
+$("tab-order").addEventListener("click", function () { tab = "order"; render(); });
+$("tab-hist").addEventListener("click", function () { tab = "hist"; render(); });
+$("q").addEventListener("input", function (e) { query_ = e.target.value; render(); });
+$("add").addEventListener("click", function () { openForm(); });
+$("who").addEventListener("click", function (e) {
+  var b = e.target.closest("[data-w]");
+  if (!b) return;
+  if (b.dataset.w === "switch") signOut(auth);
+  if (b.dataset.w === "staff") openStaff();
+});
+$("layer").addEventListener("click", function (e) {
+  var t = e.target;
+  var sb = t.closest("[data-s]");
+  if (sb) { staffAction(sb); return; }
+  if (t.closest("[data-close]") && (t.classList.contains("overlay") || t.dataset.close)) closeSheet();
+});
+document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
+["pointerdown", "keydown"].forEach(function (ev) { document.addEventListener(ev, function () { lastActive = Date.now(); }, true); });
+setInterval(function () { if (me && !isAdmin && Date.now() - lastActive > IDLE) signOut(auth); }, 30000);
+
+/* ---------- start ---------- */
+showLock("loading");
+try {
+  if (!firebaseConfig || !firebaseConfig.apiKey || /PASTE/i.test(firebaseConfig.apiKey)) throw new Error("config");
+  app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app);
+  onAuthStateChanged(auth, function (user) {
+    if (user) { startSession(user); return; }
+    var keep = loginMsg && stage === "name" ? loginMsg : "";
+    teardown(); pin = ""; busy = false;
+    showLock("name", keep, !!keep);
+  });
+} catch (e) {
+  $("lock").hidden = false;
+  $("lock").innerHTML = '<div class="lock-in"><h2>Cafe Komorebi</h2><p class="lock-msg bad">The page settings are missing. Open firebase-config.js and paste your Firebase settings.</p></div>';
+}
+
+</script>
+</body>
+</html>
